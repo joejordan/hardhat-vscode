@@ -63,6 +63,8 @@ function invalidatePreprocessingCache(workerState: WorkerState) {
 async function validate(workerState: WorkerState, command: ValidateCommand) {
   workerState.logger.trace(`[WORKER] Running validate: ${command.uri}`);
 
+  workerState.remappings = command.remappings;
+
   await recordCommand(workerState, command);
 
   if (!workerState.buildQueue.includes(command.uri)) {

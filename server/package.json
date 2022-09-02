@@ -55,6 +55,7 @@
     "@sentry/tracing": "6.19.1",
     "@solidity-parser/parser": "^0.14.0",
     "@types/prettier": "2.4.3",
+    "@types/resolve": "^1.20.2",
     "c3-linearization": "0.3.0",
     "fast-glob": "3.2.11",
     "fs-extra": "^10.0.0",

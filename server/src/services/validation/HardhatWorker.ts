@@ -161,6 +161,7 @@ export class HardhatWorker implements WorkerProcess {
         documentText,
         projectBasePath,
         openDocuments,
+        remappings: this.project.remappings,
       };
 
       this.child.send(message, (err) => {

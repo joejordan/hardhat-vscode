@@ -4,7 +4,12 @@ import type { TextDocuments } from "vscode-languageserver/node";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import type { Logger } from "@utils/Logger";
 import type { WorkspaceFolder } from "vscode-languageserver-protocol";
-import type { SolFileIndexMap, SolProjectMap, Diagnostic } from "@common/types";
+import type {
+  SolFileIndexMap,
+  SolProjectMap,
+  Diagnostic,
+  Remapping,
+} from "@common/types";
 import type { HardhatProject } from "@analyzer/HardhatProject";
 import type { HardhatRuntimeEnvironment, SolcBuild } from "hardhat/types";
 import type { AnalysisResult } from "@nomicfoundation/solidity-analyzer";
@@ -123,6 +128,7 @@ export interface WorkerState {
   compilerMetadataCache: { [key: string]: Promise<SolcBuild> };
   previousChangedDocAnalysis?: { uri: string; analysis: AnalysisResult };
   previousSolcInput?: SolcInput;
+  remappings?: Remapping[];
 
   hre: HardhatRuntimeEnvironment;
   originalReadFileAction: (
@@ -209,6 +215,7 @@ export interface ValidateCommand {
     uri: string;
     documentText: string;
   }>;
+  remappings: Remapping[];
 }
 
 export interface InvalidatePreprocessingCacheMessage {

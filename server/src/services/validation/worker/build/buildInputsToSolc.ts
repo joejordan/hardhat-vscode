@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { analyze } from "@nomicfoundation/solidity-analyzer";
 import { isDeepStrictEqual } from "util";
 import type {
@@ -5,11 +6,17 @@ import type {
   HardhatRuntimeEnvironment,
   SolcBuild,
 } from "hardhat/types";
+
+import { Parser } from "hardhat/internal/solidity/parse";
+
+import { SolidityFilesCache as SolidityFilesCache2 } from "hardhat/builtin-tasks/utils/solidity-files-cache";
+import { DependencyGraph } from "hardhat/internal/solidity/dependencyGraph";
 import {
   WorkerState,
   BuildJob,
   ValidationCompleteMessage,
 } from "../../../../types";
+import { CustomResolver } from "./CustomResolver";
 
 export interface SolcInput {
   built: true;
@@ -72,6 +79,44 @@ export async function buildInputsToSolc(
       }
 
       return workerState.originalReadFileAction(args, hre, runSuper);
+    }
+  );
+
+  workerState.hre.tasks[
+    workerState.tasks.TASK_COMPILE_SOLIDITY_GET_DEPENDENCY_GRAPH
+  ].setAction(
+    async (
+      {
+        sourceNames,
+        solidityFilesCache,
+      }: { sourceNames: string[]; solidityFilesCache?: SolidityFilesCache2 },
+      hre: HardhatRuntimeEnvironment,
+      runSuper: () => {}
+    ) => {
+      const parser = new Parser(solidityFilesCache);
+      console.log("Solidity read file");
+
+      const resolver = new CustomResolver(
+        hre.config.paths.root,
+        parser,
+        (absolutePath: string) =>
+          hre.run(workerState.tasks.TASK_COMPILE_SOLIDITY_READ_FILE, {
+            absolutePath,
+          }),
+        workerState.remappings || []
+      );
+
+      const resolvedFiles = await Promise.all(
+        sourceNames.map((sn) => resolver.resolveSourceName(sn))
+      );
+      console.log({ resolvedFiles });
+
+      const dependencyGraph = await DependencyGraph.createFromResolvedFiles(
+        resolver as any,
+        resolvedFiles
+      );
+
+      return dependencyGraph;
     }
   );
 
@@ -173,10 +218,13 @@ async function getSourceNames(
   { hre, tasks: { TASK_COMPILE_SOLIDITY_GET_SOURCE_NAMES } }: WorkerState,
   { context }: BuildJob
 ) {
+  console.log("Get source names");
+
   context.sourceNames = await hre.run(
     TASK_COMPILE_SOLIDITY_GET_SOURCE_NAMES,
     context
   );
+  console.log(`Result: ${context.sourceNames}`);
 }
 
 async function readFileCache(
@@ -192,6 +240,8 @@ async function getDependencyGraph(
   { hre, tasks: { TASK_COMPILE_SOLIDITY_GET_DEPENDENCY_GRAPH } }: WorkerState,
   { context }: BuildJob
 ) {
+  console.log("Get dependency graph");
+
   context.dependencyGraph = await hre.run(
     TASK_COMPILE_SOLIDITY_GET_DEPENDENCY_GRAPH,
     context
@@ -218,6 +268,9 @@ async function getCompilationJob(
   }: WorkerState,
   { jobId, projectBasePath, context, startTime }: BuildJob
 ): Promise<ValidationCompleteMessage | null> {
+  console.log("Get compilation job");
+  console.log({ jobId, projectBasePath, context, startTime });
+
   context.compilationJob = await hre.run(
     TASK_COMPILE_SOLIDITY_GET_COMPILATION_JOB_FOR_FILE,
     {
@@ -270,6 +323,8 @@ async function getSolcInput(
       }
     );
 
+  console.log("Get compiler input");
+
   context.input = await hre.run(
     TASK_COMPILE_SOLIDITY_GET_COMPILER_INPUT,
     context
@@ -308,6 +363,8 @@ async function getSolcBuild(
 
       return;
     }
+
+    console.log("Get solc build");
 
     const solcBuildPromise = hre.run(TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD, {
       quiet: true,
