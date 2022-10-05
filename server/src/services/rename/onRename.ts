@@ -11,12 +11,8 @@ import {
 
 import { getParserPositionFromVSCodePosition, getRange } from "@common/utils";
 import { findReferencesFor } from "@utils/findReferencesFor";
-import { invalidateWorkerPreprocessCache } from "@services/validation/invalidateWorkerPreprocessCache";
 import { ServerState } from "../../types";
-import {
-  convertHardhatUriToVscodeUri,
-  decodeUriAndRemoveFilePrefix,
-} from "../../utils/index";
+import { convertHardhatUriToVscodeUri } from "../../utils/index";
 
 export const onRename = (serverState: ServerState) => {
   return async (params: RenameParams) => {
@@ -34,11 +30,11 @@ export const onRename = (serverState: ServerState) => {
       // are recorded, preprocessing won't recognise that
       // the cache is no longer valid, hence we clear it
       // before returning
-      await invalidateWorkerPreprocessCache(
-        serverState,
-        decodeUriAndRemoveFilePrefix(params.textDocument.uri),
-        true
-      );
+      // await invalidateWorkerPreprocessCache(
+      //   serverState,
+      //   decodeUriAndRemoveFilePrefix(params.textDocument.uri),
+      //   true
+      // );
 
       return workspaceEdit;
     } catch (err) {

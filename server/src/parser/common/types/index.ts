@@ -81,8 +81,6 @@ import type {
   TypeDefinition,
 } from "@solidity-parser/parser/dist/src/ast-types";
 
-import { WorkspaceFolder } from "vscode-languageserver-protocol";
-
 import {
   Position as VSCodePosition,
   WorkspaceEdit,
@@ -105,6 +103,7 @@ import {
 } from "vscode-languageserver-types";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
+import Project from "../../../frameworks/base/Project";
 
 export {
   ASTNode,
@@ -363,26 +362,8 @@ export enum ClientTrackingState {
   TRACKED = "TRACKED",
 }
 
-export type SolProjectType = "hardhat" | "none";
-
-export interface Remapping {
-  from: string;
-  to: string;
-}
-
-export interface ISolProject {
-  type: SolProjectType;
-  /**
-   * The basepath of the solidity project.
-   */
-  basePath: string;
-  configPath: string;
-  workspaceFolder: WorkspaceFolder;
-  remappings?: Remapping[];
-}
-
 export interface SolProjectMap {
-  [key: string]: ISolProject;
+  [key: string]: Project;
 }
 
 export interface ISolFileEntry {
@@ -397,7 +378,7 @@ export interface ISolFileEntry {
    */
   text: string | undefined;
 
-  project: ISolProject;
+  project: Project;
 
   /**
    * AST that we get from @solidity-parser/parser.

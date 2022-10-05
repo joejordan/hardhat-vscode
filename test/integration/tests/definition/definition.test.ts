@@ -1,10 +1,15 @@
-import path from "path";
-import { Uri } from "vscode";
+import vscode from "vscode";
+import assert from "assert";
 import { getClient } from "../../client";
 import { Client } from "../../common/types";
 import { assertLspCommand } from "../../common/assertLspCommand";
 import { getTestContractUri } from "../../helpers/getTestContract";
-import { getRootPath } from "../../helpers/workspace";
+import {
+  getCurrentEditor,
+  goToPosition,
+  openFileInEditor,
+} from "../../helpers/editor";
+import { assertPositionEqual } from "../../helpers/assertions";
 
 suite("Single-file Navigation", function () {
   const testUri = getTestContractUri("main/contracts/definition/Test.sol");
@@ -139,67 +144,38 @@ suite("Single-file Navigation", function () {
   });
 
   test("Jump to import file", async () => {
-    await assertLspCommand(client, {
-      action: "DefinitionRequest",
-      uri: importTestUri.path,
-      params: {
-        position: {
-          line: 3,
-          character: 25,
-        },
-      },
-      expected: [
-        {
-          uri: {
-            path: getTestContractUri("main/contracts/definition/Foo.sol").path,
-          },
-          range: [
-            {
-              line: 1,
-              character: 0,
-            },
-            {
-              line: 6,
-              character: 0,
-            },
-          ],
-        },
-      ],
-    });
+    await openFileInEditor(importTestUri);
+
+    goToPosition(new vscode.Position(3, 25));
+
+    await vscode.commands.executeCommand("editor.action.goToDeclaration");
+
+    assert.equal(
+      getCurrentEditor().document.fileName,
+      getTestContractUri("main/contracts/definition/Foo.sol").path
+    );
+    assertPositionEqual(
+      getCurrentEditor().selection.active,
+      new vscode.Position(1, 0)
+    );
   });
 
   test("Jump to import dependency file", async () => {
-    await assertLspCommand(client, {
-      action: "DefinitionRequest",
-      uri: importTestUri.path,
-      params: {
-        position: {
-          line: 4,
-          character: 73,
-        },
-      },
-      expected: [
-        {
-          uri: {
-            path: Uri.file(
-              path.join(
-                getRootPath(),
-                "node_modules/@openzeppelin/contracts/access/Ownable.sol"
-              )
-            ).path,
-          },
-          range: [
-            {
-              line: 3,
-              character: 0,
-            },
-            {
-              line: 76,
-              character: 0,
-            },
-          ],
-        },
-      ],
-    });
+    await openFileInEditor(importTestUri);
+
+    goToPosition(new vscode.Position(4, 73));
+
+    await vscode.commands.executeCommand("editor.action.goToDeclaration");
+
+    assert.equal(
+      getCurrentEditor().document.fileName,
+      getTestContractUri(
+        "../node_modules/@openzeppelin/contracts/access/Ownable.sol"
+      ).path
+    );
+    assertPositionEqual(
+      getCurrentEditor().selection.active,
+      new vscode.Position(3, 0)
+    );
   });
 });

@@ -39,7 +39,7 @@
   },
   "activationEvents": [
     "onLanguage:solidity",
-    "workspaceContains:**/hardhat.config.ts"
+    "workspaceContains:**/hardhat.config.{ts,js}"
   ],
   "scripts": {
     "build": "tsc -b ./client/tsconfig.json && tsc -b ./server/tsconfig.build.json && tsc -b",

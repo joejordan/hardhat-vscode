@@ -7,7 +7,6 @@ import { onDidChangeContent } from "@services/documents/onDidChangeContent";
 import { onDidClose } from "@services/documents/onDidClose";
 import { onDidSave } from "@services/documents/onDidSave";
 import { ServerState } from "../../../src/types";
-import { setupMockCompilerProcessFactory } from "../../helpers/setupMockCompilerProcessFactory";
 import { setupMockConnection } from "../../helpers/setupMockConnection";
 import { setupMockLogger } from "../../helpers/setupMockLogger";
 import { setupMockTelemetry } from "../../helpers/setupMockTelemetry";
@@ -182,7 +181,6 @@ describe("documents", () => {
 function setupServerState(): ServerState {
   const mockConnection = setupMockConnection();
   const mockTelemetry = setupMockTelemetry();
-  const compProcessFactory = setupMockCompilerProcessFactory();
   const logger = setupMockLogger();
 
   return {
@@ -191,21 +189,20 @@ function setupServerState(): ServerState {
 
     globalTelemetryEnabled: false,
     hardhatTelemetryEnabled: false,
-    indexJobCount: 0,
-
-    compProcessFactory,
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     connection: mockConnection as any,
     documents: new TextDocuments(TextDocument),
-    workspaceFolders: [],
+    indexedWorkspaceFolders: [],
     projects: {},
     solFileIndex: {},
-    workerProcesses: {},
 
     telemetry: mockTelemetry,
     logger,
     solcVersions: [],
     indexingFinished: true,
+    workspaceFoldersToIndex: [],
+    lastValidationId: {},
+    validationCount: 0,
   };
 }

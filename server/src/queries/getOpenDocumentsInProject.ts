@@ -1,15 +1,15 @@
 import {
   ClientTrackingState,
   ISolFileEntry,
-  ISolProject,
   TextDocument,
 } from "@common/types";
+import Project from "../frameworks/base/Project";
 import { ServerState } from "../types";
 import { runningOnWindows } from "../utils/operatingSystem";
 
 export function getOpenDocumentsInProject(
   serverState: ServerState,
-  project: ISolProject
+  project: Project
 ): TextDocument[] {
   const openSolFilesInProj = Object.values(serverState.solFileIndex).filter(
     (solfile) =>
@@ -17,15 +17,15 @@ export function getOpenDocumentsInProject(
       solfile.project.basePath === project.basePath
   );
 
-  const openDocs = openSolFilesInProj
+  const openDocuments = openSolFilesInProj
     .map((solFile) => lookupDocForSolFileEntry(serverState, solFile))
     .filter((doc): doc is TextDocument => doc !== undefined);
 
-  if (openDocs.length < openSolFilesInProj.length) {
+  if (openDocuments.length < openSolFilesInProj.length) {
     serverState.logger.info("Open document lookup has dropped files");
   }
 
-  return openDocs;
+  return openDocuments;
 }
 
 function lookupDocForSolFileEntry(

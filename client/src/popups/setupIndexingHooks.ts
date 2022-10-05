@@ -1,21 +1,14 @@
 import {
   workspace,
-  window,
   TextDocument,
   languages,
   LanguageStatusSeverity,
   LanguageStatusItem,
 } from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
-import { updateHardhatProjectLanguageItem } from "../languageitems/hardhatProject";
 import { ExtensionState } from "../types";
 
-interface IndexFileData {
-  jobId: number;
-  path: string;
-  current: number;
-  total: number;
-}
+const INDEXING_JOB_ID = "indexing";
 
 export function setupIndexingHooks(
   extensionState: ExtensionState,
@@ -26,77 +19,34 @@ export function setupIndexingHooks(
     .then(() => {
       const indexingStartDisposable = client.onNotification(
         "custom/indexing-start",
-        (data: IndexFileData) => {
-          const indexingStatusItem = setupIndexingLanguageStatusItem(
-            data.jobId
-          );
+        () => {
+          const indexingStatusItem = setupIndexingLanguageStatusItem();
 
           extensionState.currentIndexingJobs.push(indexingStatusItem);
         }
       );
 
-      const indexDisposable = client.onNotification(
-        "custom/indexing-file",
-        async (data: IndexFileData) => {
-          const jobId = data.jobId.toString();
+      const indexingEndDisposable = client.onNotification(
+        "custom/indexing-end",
+        () => {
           const indexingStatusItem = extensionState.currentIndexingJobs.find(
-            (si) => si.id === jobId
+            (statusItem) => statusItem.id === INDEXING_JOB_ID
           );
 
-          if (!indexingStatusItem) {
-            return;
-          }
+          indexingStatusItem?.dispose();
 
-          if (indexingStatusItem.detail === undefined) {
-            indexingStatusItem.detail = `${data.total} files`;
-          }
-
-          // check to display language status item
-          if (
-            window.activeTextEditor &&
-            window.activeTextEditor.document.uri.path.endsWith(data.path)
-          ) {
-            await updateHardhatProjectLanguageItem(extensionState, {
-              uri: window.activeTextEditor.document.uri.path,
-            });
-          }
-
-          if (data.total !== data.current) {
-            return;
-          }
-
-          if (window.activeTextEditor && data.total === 0) {
-            await updateHardhatProjectLanguageItem(extensionState, {
-              uri: window.activeTextEditor.document.uri.path,
-            });
-          }
-
-          indexingStatusItem.busy = false;
-          indexingStatusItem.dispose();
-        }
-      );
-
-      const workerInitializedDisposable = client.onNotification(
-        "custom/worker-initialized",
-        (data: { projectBasePath: string }) => {
-          // Files that were open on vscode load, will
-          // have swallowed the `didChange` event as the
-          // language server wasn't intialized yet. We
-          // revalidate open editor files after indexing
-          // to ensure warning and errors appear on startup.
-          triggerValidationForOpenDoc(client, data.projectBasePath);
+          triggerValidationForOpenDoc(client);
         }
       );
 
       extensionState.listenerDisposables.push(indexingStartDisposable);
-      extensionState.listenerDisposables.push(indexDisposable);
-      extensionState.listenerDisposables.push(workerInitializedDisposable);
+      extensionState.listenerDisposables.push(indexingEndDisposable);
     })
     .catch((reason) => extensionState.logger.error(reason));
 }
 
-function setupIndexingLanguageStatusItem(jobId: number): LanguageStatusItem {
-  const statusItem = languages.createLanguageStatusItem(jobId.toString(), {
+function setupIndexingLanguageStatusItem(): LanguageStatusItem {
+  const statusItem = languages.createLanguageStatusItem(INDEXING_JOB_ID, {
     language: "solidity",
   });
 
@@ -112,15 +62,10 @@ function setupIndexingLanguageStatusItem(jobId: number): LanguageStatusItem {
 /**
  * If the doc is open, trigger a noop change on the server to start validation.
  */
-function triggerValidationForOpenDoc(
-  client: LanguageClient,
-  projectBasePath: string
-) {
+function triggerValidationForOpenDoc(client: LanguageClient) {
   workspace.textDocuments.forEach((doc) => {
     // Only trigger files that belong to the project whose worker is ready
-    if (doc.uri.path.includes(projectBasePath)) {
-      notifyOfNoopChange(client, doc);
-    }
+    notifyOfNoopChange(client, doc);
   });
 }
 

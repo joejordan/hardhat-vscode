@@ -1,4 +1,3 @@
-import { lowercaseDriveLetter, toUnixStyle } from "@utils/index";
 import * as assert from "assert";
 import * as path from "path";
 import { forceToUnixStyle } from "../helpers/forceToUnixStyle";
@@ -40,20 +39,6 @@ describe("Solidity Language Server", () => {
         ],
         errors: [],
       }));
-    });
-
-    it("returns the project config file for hardhat files", async () => {
-      const response = await request({
-        uri: prependWithFilePrefix(withinUri),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
-
-      assert.deepStrictEqual(response, {
-        found: true,
-        hardhat: true,
-        configPath: lowercaseDriveLetter(toUnixStyle(projectUri)),
-        configDisplayPath: "solFileDetails/testData/project/hardhat.config.ts",
-      });
     });
 
     it("returns no project config for non-hardhat files", async () => {

@@ -6,13 +6,13 @@ import {
   EmptyNode,
   Searcher as ISearcher,
   SolFileState,
-  ISolProject,
   ClientTrackingState,
 } from "@common/types";
+import Project from "../../frameworks/base/Project";
 
 export class SolFileEntry implements ISolFileEntry {
   public uri: string;
-  public project: ISolProject;
+  public project: Project;
   public text: string | undefined;
   public status: SolFileState;
   public tracking: ClientTrackingState;
@@ -22,7 +22,7 @@ export class SolFileEntry implements ISolFileEntry {
   public searcher: ISearcher;
   public orphanNodes: Node[] = [];
 
-  private constructor(uri: string, project: ISolProject) {
+  private constructor(uri: string, project: Project) {
     this.uri = uri;
     this.project = project;
     this.text = "";
@@ -41,13 +41,13 @@ export class SolFileEntry implements ISolFileEntry {
     this.searcher = new Searcher(this.analyzerTree);
   }
 
-  public static createUnloadedEntry(uri: string, project: ISolProject) {
+  public static createUnloadedEntry(uri: string, project: Project) {
     return new SolFileEntry(uri, project);
   }
 
   public static createLoadedUntrackedEntry(
     uri: string,
-    project: ISolProject,
+    project: Project,
     text: string
   ): ISolFileEntry {
     const unloaded = new SolFileEntry(uri, project);
@@ -57,7 +57,7 @@ export class SolFileEntry implements ISolFileEntry {
 
   public static createLoadedTrackedEntry(
     uri: string,
-    project: ISolProject,
+    project: Project,
     text: string
   ): ISolFileEntry {
     const unloaded = new SolFileEntry(uri, project);

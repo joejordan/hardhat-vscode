@@ -2,14 +2,13 @@ import { Connection } from "vscode-languageserver";
 import { TextDocuments } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Logger } from "@utils/Logger";
-import { WorkspaceFileRetriever } from "@analyzer/WorkspaceFileRetriever";
+import { WorkspaceFileRetriever } from "@utils/WorkspaceFileRetriever";
 import { onHover } from "@services/hover/onHover";
 import { onInitialize } from "@services/initialization/onInitialize";
 import { onInitialized } from "@services/initialization/onInitialized";
 import { onSignatureHelp } from "@services/signaturehelp/onSignatureHelp";
 import { onCompletion } from "@services/completion/onCompletion";
 import { onCodeAction } from "@services/codeactions/onCodeAction";
-import { compilerProcessFactory } from "@services/validation/compilerProcessFactory";
 import { onDefinition } from "@services/definition/onDefinition";
 import { onTypeDefinition } from "@services/typeDefinition/onTypeDefinition";
 import { onReferences } from "@services/references/onReferences";
@@ -18,7 +17,7 @@ import { onRename } from "@services/rename/onRename";
 import { RequestType } from "vscode-languageserver-protocol";
 import path = require("path");
 import { decodeUriAndRemoveFilePrefix, toUnixStyle } from "./utils";
-import { CompilerProcessFactory, ServerState } from "./types";
+import { ServerState } from "./types";
 import { Telemetry } from "./telemetry/types";
 import { attachDocumentHooks } from "./services/documents/attachDocumentHooks";
 
@@ -43,14 +42,12 @@ const GetSolFileDetails = new RequestType<
 
 export default function setupServer(
   connection: Connection,
-  compProcessFactory: typeof compilerProcessFactory,
   workspaceFileRetriever: WorkspaceFileRetriever,
   telemetry: Telemetry,
   logger: Logger
 ): ServerState {
   const serverState = setupUninitializedServerState(
     connection,
-    compProcessFactory,
     telemetry,
     logger
   );
@@ -65,7 +62,6 @@ export default function setupServer(
 
 function setupUninitializedServerState(
   connection: Connection,
-  compProcessFactory: CompilerProcessFactory,
   telemetry: Telemetry,
   logger: Logger
 ) {
@@ -74,18 +70,18 @@ function setupUninitializedServerState(
     hasWorkspaceFolderCapability: false,
     globalTelemetryEnabled: false,
     hardhatTelemetryEnabled: false,
-    indexJobCount: 0,
-    compProcessFactory,
     connection,
-    workspaceFolders: [],
+    indexedWorkspaceFolders: [],
+    workspaceFoldersToIndex: [],
     projects: {},
     documents: new TextDocuments(TextDocument),
     solFileIndex: {},
-    workerProcesses: {},
     telemetry,
     logger,
     solcVersions: [],
     indexingFinished: false,
+    validationCount: 0,
+    lastValidationId: {},
   };
 
   return serverState;
@@ -160,13 +156,13 @@ function attachCustomHooks(serverState: ServerState) {
           return { found: false };
         }
 
-        if (solFil.project.type !== "hardhat") {
+        if (solFil.project.configPath === undefined) {
           return { found: true, hardhat: false };
         }
 
         const displayConfigPath = toUnixStyle(
           path.relative(
-            decodeUriAndRemoveFilePrefix(solFil.project.workspaceFolder.uri),
+            decodeUriAndRemoveFilePrefix(solFil.project.basePath),
             solFil.project.configPath
           )
         );
