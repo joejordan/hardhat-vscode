@@ -46,7 +46,9 @@ const startLanguageServer = (extensionState: ExtensionState): void => {
     synchronize: {
       fileEvents: [
         workspace.createFileSystemWatcher("**/hardhat.config.{ts,js}"),
-        workspace.createFileSystemWatcher("**/contracts/**/*.sol"),
+        workspace.createFileSystemWatcher("**/foundry.toml"),
+        workspace.createFileSystemWatcher("**/remappings.txt"),
+        workspace.createFileSystemWatcher("**/*.sol"),
       ],
     },
     diagnosticCollectionName: "hardhat-language-server",

@@ -35,4 +35,6 @@ export default abstract class Project {
   public abstract onWatchedFilesChanges(
     params: DidChangeWatchedFilesParams
   ): Promise<void>;
+
+  public abstract frameworkName(): string;
 }

@@ -30,6 +30,10 @@ export default class ProjectlessProject extends Project {
     return "projectless";
   }
 
+  public frameworkName(): string {
+    return "Projectless";
+  }
+
   public async initialize(): Promise<void> {
     return;
   }

@@ -70,6 +70,10 @@ export default class HardhatProject extends Project {
     return this.configPath;
   }
 
+  public frameworkName(): string {
+    return "Hardhat";
+  }
+
   public async initialize(): Promise<void> {
     return new Promise((resolve, _reject) => {
       this._onInitialized = resolve;

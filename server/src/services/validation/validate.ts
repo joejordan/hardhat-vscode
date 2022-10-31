@@ -75,12 +75,15 @@ export async function validate(
       let compilerOutput: any;
 
       // Get solc input from framework provider
-      await logger.trackTime("Building compilation", async () => {
-        compilationDetails = await project.buildCompilation(
-          sourceUri,
-          openDocuments
-        );
-      });
+      await logger.trackTime(
+        `Building compilation (${project.frameworkName()})`,
+        async () => {
+          compilationDetails = await project.buildCompilation(
+            sourceUri,
+            openDocuments
+          );
+        }
+      );
 
       // Use bundled hardhat to compile
       await logger.trackTime("Compiling", async () => {

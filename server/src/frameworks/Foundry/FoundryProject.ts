@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { analyze } from "@nomicfoundation/solidity-analyzer";
 import fs from "fs";
 import { CompilerInput } from "hardhat/types";
@@ -7,9 +8,10 @@ import semver from "semver";
 import { DidChangeWatchedFilesParams } from "vscode-languageserver-protocol";
 import { analyzeSolFile } from "../../parser/analyzer/analyzeSolFile";
 import { OpenDocuments, ServerState } from "../../types";
-import { toUnixStyle } from "../../utils";
+import { decodeUriAndRemoveFilePrefix, toUnixStyle } from "../../utils";
 import directoryContains from "../../utils/directoryContains";
 import { getOrInitialiseSolFileEntry } from "../../utils/getOrInitialiseSolFileEntry";
+import { runCmd } from "../../utils/operatingSystem";
 import CompilationDetails from "../base/CompilationDetails";
 import Project from "../base/Project";
 import { Remapping } from "./Remapping";
@@ -21,28 +23,63 @@ interface SolFileDetails {
 
 export default class FoundryProject extends Project {
   public priority = 1;
-  public sourcesPath: string;
+  public sourcesPath!: string;
+  public testsPath!: string;
+  public remappings: Remapping[] = [];
+  public initializeError?: string;
 
   constructor(
     serverState: ServerState,
     basePath: string,
-    public configPath: string,
-    public remappings: Remapping[]
+    public configPath: string
   ) {
     super(serverState, basePath);
-    this.sourcesPath = path.join(basePath, "src"); // TODO: call forge
   }
 
   public id(): string {
     return this.configPath;
   }
 
+  public frameworkName(): string {
+    return "Foundry";
+  }
+
   public async initialize(): Promise<void> {
+    try {
+      const config = JSON.parse(await runCmd("forge config --json"));
+      this.sourcesPath = config.src;
+      this.testsPath = config.test;
+
+      const rawRemappings = await runCmd("forge remappings", this.basePath);
+      this.remappings = this._parseRemappings(rawRemappings);
+    } catch (error: any) {
+      switch (error.code) {
+        case 127:
+          this.initializeError =
+            "Couldn't run `forge`. Please check that your foundry installation is correct.";
+          break;
+        case 134:
+          this.initializeError =
+            "Running `forge` failed. Please check that your foundry.toml file is correct.";
+          break;
+        default:
+          this.initializeError = `Unexpected error while running \`forge\`: ${error.message}`;
+      }
+    }
+
     return;
   }
 
   public async fileBelongs(uri: string) {
-    return directoryContains(this.sourcesPath, uri);
+    if (this.initializeError === undefined) {
+      // Project was initialized correctly, then check contract is inside source or test folders
+      return [this.sourcesPath, this.testsPath].some((dir) =>
+        directoryContains(dir, uri)
+      );
+    } else {
+      // Project could not be initialized. Claim all files under base path to avoid them being incorrectly assigned to other projects
+      return directoryContains(this.basePath, uri);
+    }
   }
 
   public resolveImportPath(file: string, importPath: string) {
@@ -70,6 +107,10 @@ export default class FoundryProject extends Project {
     sourceUri: string,
     openDocuments: OpenDocuments
   ): Promise<CompilationDetails> {
+    if (this.initializeError !== undefined) {
+      throw new Error(this.initializeError);
+    }
+
     const documentText = openDocuments.find(
       (doc) => doc.uri === sourceUri
     )?.documentText;
@@ -129,9 +170,21 @@ export default class FoundryProject extends Project {
     };
   }
 
-  public async onWatchedFilesChanges(
-    _params: DidChangeWatchedFilesParams
-  ): Promise<void> {
+  public async onWatchedFilesChanges({
+    changes,
+  }: DidChangeWatchedFilesParams): Promise<void> {
+    for (const change of changes) {
+      const changedUri = decodeUriAndRemoveFilePrefix(change.uri);
+      const remappingsPath = path.join(this.basePath, "remappings.txt");
+
+      if ([this.configPath, remappingsPath].some((uri) => changedUri === uri)) {
+        this.serverState.logger.info(
+          `Reinitializing foundry project: ${this.id()}`
+        );
+
+        await this.initialize();
+      }
+    }
     return;
   }
 
@@ -188,5 +241,30 @@ export default class FoundryProject extends Project {
     }
 
     return dependencyDetails;
+  }
+
+  private _parseRemappings(rawRemappings: string) {
+    const lines = rawRemappings.trim().split("\n");
+    const remappings: Remapping[] = [];
+
+    for (const line of lines) {
+      const lineTokens = line.split("=", 2);
+
+      if (
+        lineTokens.length !== 2 ||
+        lineTokens[0].length === 0 ||
+        lineTokens[1].length === 0
+      ) {
+        continue;
+      }
+
+      const [from, to] = lineTokens.map((token) =>
+        token.endsWith("/") ? token : `${token}/`
+      );
+
+      remappings.push({ from, to: path.join(this.basePath, to) });
+    }
+
+    return remappings;
   }
 }

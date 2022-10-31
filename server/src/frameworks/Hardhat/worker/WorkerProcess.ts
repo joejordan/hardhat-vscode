@@ -307,7 +307,7 @@ export default class WorkerProcess {
 
       // Translate hardhat error into BuildInputError. Pass other errors through
       if (HardhatError.isHardhatError(error)) {
-        const IMPORT_FILE_ERROR_CODES = [404, 405, 406, 407, 408, 409];
+        const IMPORT_FILE_ERROR_CODES = [404, 405, 406, 407, 408, 409, 412];
         const IMPORT_LIBRARY_ERROR_CODES = [411];
 
         const { title, message, description, number } = error.errorDescriptor;
