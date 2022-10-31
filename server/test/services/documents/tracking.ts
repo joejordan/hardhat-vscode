@@ -10,6 +10,7 @@ import { ServerState } from "../../../src/types";
 import { setupMockConnection } from "../../helpers/setupMockConnection";
 import { setupMockLogger } from "../../helpers/setupMockLogger";
 import { setupMockTelemetry } from "../../helpers/setupMockTelemetry";
+import { setupMockWorkspaceFileRetriever } from "../../helpers/setupMockWorkspaceFileRetriever";
 
 describe("documents", () => {
   describe("tracking", () => {
@@ -182,6 +183,7 @@ function setupServerState(): ServerState {
   const mockConnection = setupMockConnection();
   const mockTelemetry = setupMockTelemetry();
   const logger = setupMockLogger();
+  const workspaceFileRetriever = setupMockWorkspaceFileRetriever();
 
   return {
     env: "production",
@@ -204,5 +206,6 @@ function setupServerState(): ServerState {
     workspaceFoldersToIndex: [],
     lastValidationId: {},
     validationCount: 0,
+    workspaceFileRetriever,
   };
 }

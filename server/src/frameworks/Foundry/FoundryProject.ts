@@ -8,7 +8,7 @@ import semver from "semver";
 import { DidChangeWatchedFilesParams } from "vscode-languageserver-protocol";
 import { analyzeSolFile } from "../../parser/analyzer/analyzeSolFile";
 import { OpenDocuments, ServerState } from "../../types";
-import { decodeUriAndRemoveFilePrefix, toUnixStyle } from "../../utils";
+import { toUnixStyle } from "../../utils";
 import directoryContains from "../../utils/directoryContains";
 import { getOrInitialiseSolFileEntry } from "../../utils/getOrInitialiseSolFileEntry";
 import { runCmd } from "../../utils/operatingSystem";
@@ -27,6 +27,7 @@ export default class FoundryProject extends Project {
   public testsPath!: string;
   public remappings: Remapping[] = [];
   public initializeError?: string;
+  public configSolcVersion?: string;
 
   constructor(
     serverState: ServerState,
@@ -49,6 +50,7 @@ export default class FoundryProject extends Project {
       const config = JSON.parse(await runCmd("forge config --json"));
       this.sourcesPath = config.src;
       this.testsPath = config.test;
+      this.configSolcVersion = config.solc || undefined; // may come as null otherwise
 
       const rawRemappings = await runCmd("forge remappings", this.basePath);
       this.remappings = this._parseRemappings(rawRemappings);
@@ -126,13 +128,21 @@ export default class FoundryProject extends Project {
     const dependencyDetails = await this._crawlDependencies(sourceUri);
     const pragmas = _.flatten(_.map(dependencyDetails, "pragmas"));
 
-    const solcVersion = semver.maxSatisfying(
-      this.serverState.solcVersions,
-      pragmas.join(" ")
-    );
+    // Use solc version specified in foundry.toml or auto resolve it
+    let solcVersion: string;
+    if (this.configSolcVersion === undefined) {
+      const resolvedSolcVersion = semver.maxSatisfying(
+        this.serverState.solcVersions,
+        pragmas.join(" ")
+      );
 
-    if (solcVersion === null) {
-      throw new Error(`No available solc version satisfying ${pragmas}`);
+      if (resolvedSolcVersion === null) {
+        throw new Error(`No available solc version satisfying ${pragmas}`);
+      }
+
+      solcVersion = resolvedSolcVersion;
+    } else {
+      solcVersion = this.configSolcVersion;
     }
 
     const contractsToCompile = _.map(dependencyDetails, "path");
@@ -174,10 +184,9 @@ export default class FoundryProject extends Project {
     changes,
   }: DidChangeWatchedFilesParams): Promise<void> {
     for (const change of changes) {
-      const changedUri = decodeUriAndRemoveFilePrefix(change.uri);
       const remappingsPath = path.join(this.basePath, "remappings.txt");
 
-      if ([this.configPath, remappingsPath].some((uri) => changedUri === uri)) {
+      if ([this.configPath, remappingsPath].some((uri) => change.uri === uri)) {
         this.serverState.logger.info(
           `Reinitializing foundry project: ${this.id()}`
         );

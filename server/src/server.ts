@@ -49,7 +49,8 @@ export default function setupServer(
   const serverState = setupUninitializedServerState(
     connection,
     telemetry,
-    logger
+    logger,
+    workspaceFileRetriever
   );
 
   attachLanguageServerLifeCycleHooks(serverState, workspaceFileRetriever);
@@ -63,7 +64,8 @@ export default function setupServer(
 function setupUninitializedServerState(
   connection: Connection,
   telemetry: Telemetry,
-  logger: Logger
+  logger: Logger,
+  workspaceFileRetriever: WorkspaceFileRetriever
 ) {
   const serverState: ServerState = {
     env: "production",
@@ -82,6 +84,7 @@ function setupUninitializedServerState(
     indexingFinished: false,
     validationCount: 0,
     lastValidationId: {},
+    workspaceFileRetriever,
   };
 
   return serverState;

@@ -7,7 +7,7 @@ import _ from "lodash";
 import path from "path";
 import { DidChangeWatchedFilesParams } from "vscode-languageserver-protocol";
 import { OpenDocuments, ServerState } from "../../types";
-import { decodeUriAndRemoveFilePrefix, toUnixStyle } from "../../utils";
+import { toUnixStyle } from "../../utils";
 import directoryContains from "../../utils/directoryContains";
 import { Logger } from "../../utils/Logger";
 import CompilationDetails from "../base/CompilationDetails";
@@ -171,7 +171,7 @@ export default class HardhatProject extends Project {
     for (const change of changes) {
       if (change.uri.endsWith(".sol")) {
         this.workerProcess?.send(new InvalidateBuildCacheMessage());
-      } else if (decodeUriAndRemoveFilePrefix(change.uri) === this.configPath) {
+      } else if (change.uri === this.configPath) {
         this.logger.info(`Config file changed. Restarting worker process.`);
 
         // Kill existing worker process

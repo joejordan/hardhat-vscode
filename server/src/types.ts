@@ -6,6 +6,7 @@ import type { WorkspaceFolder } from "vscode-languageserver-protocol";
 import type { SolFileIndexMap, SolProjectMap } from "@common/types";
 import type { Telemetry } from "./telemetry/types";
 import { BuildInputError } from "./frameworks/base/Errors";
+import { WorkspaceFileRetriever } from "./utils/WorkspaceFileRetriever";
 
 export interface ServerState {
   env: "production" | "development";
@@ -29,6 +30,7 @@ export interface ServerState {
   // Associate validation request ids to files to solve parallel validation jobs on the same file
   validationCount: number;
   lastValidationId: { [uri: string]: number };
+  workspaceFileRetriever: WorkspaceFileRetriever;
 }
 
 export interface SolcError {

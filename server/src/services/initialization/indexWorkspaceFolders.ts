@@ -90,31 +90,7 @@ export async function indexWorkspaceFolders(
     );
 
     // Index sol files, and associate the matching project
-    const indexedProjects = Object.values(serverState.projects);
-    for (const solFileUri of solFileUris) {
-      let project: Project = new ProjectlessProject(
-        serverState,
-        path.dirname(solFileUri)
-      );
-
-      for (const indexedProject of indexedProjects) {
-        try {
-          const belongs = await indexedProject.fileBelongs(solFileUri);
-          if (belongs && indexedProject.priority > project.priority) {
-            project = indexedProject;
-          }
-        } catch (error) {
-          logger.trace(`Error on fileBelongs: ${error}`);
-          continue;
-        }
-      }
-
-      logger.trace(`Associating ${project.id()} to ${solFileUri}`);
-
-      const docText = await workspaceFileRetriever.readFile(solFileUri);
-      serverState.solFileIndex[solFileUri] =
-        SolFileEntry.createLoadedUntrackedEntry(solFileUri, project, docText);
-    }
+    await indexSolidityFiles(serverState, solFileUris);
   });
 
   // Store workspace folders to mark them as indexed
@@ -161,6 +137,41 @@ async function scanForSolFiles(
   logger.info(`Scan complete, ${solFileUris.length} sol files found`);
 
   return solFileUris;
+}
+
+export async function indexSolidityFiles(
+  serverState: ServerState,
+  fileUris: string[]
+) {
+  const indexedProjects = Object.values(serverState.projects);
+
+  for (const fileUri of fileUris) {
+    let project: Project = new ProjectlessProject(
+      serverState,
+      path.dirname(fileUri)
+    );
+
+    for (const indexedProject of indexedProjects) {
+      try {
+        const belongs = await indexedProject.fileBelongs(fileUri);
+        if (belongs && indexedProject.priority > project.priority) {
+          project = indexedProject;
+        }
+      } catch (error) {
+        serverState.logger.trace(`Error on fileBelongs: ${error}`);
+        continue;
+      }
+    }
+
+    serverState.logger.trace(`Associating ${project.id()} to ${fileUri}`);
+
+    const docText = await serverState.workspaceFileRetriever.readFile(fileUri);
+    serverState.solFileIndex[fileUri] = SolFileEntry.createLoadedUntrackedEntry(
+      fileUri,
+      project,
+      docText
+    );
+  }
 }
 
 function notifyStartIndexing(indexWorkspaceFoldersContext: ServerState) {
