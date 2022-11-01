@@ -61,6 +61,11 @@ export async function validate(
       documentText: openDoc.getText(),
     }));
 
+    // Ensure sourceUri is included in open documents
+    if (!openDocuments.some((doc) => doc.uri === sourceUri)) {
+      return { status: "failed_precondition", result: false };
+    }
+
     // Associate validation request id to this file
     const validationId = ++serverState.validationCount;
     serverState.lastValidationId[sourceUri] = validationId;

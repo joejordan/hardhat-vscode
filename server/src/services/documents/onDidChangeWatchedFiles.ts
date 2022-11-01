@@ -1,4 +1,7 @@
-import { DidChangeWatchedFilesParams } from "vscode-languageserver";
+import {
+  DidChangeWatchedFilesParams,
+  FileChangeType,
+} from "vscode-languageserver";
 import { ServerState } from "../../types";
 import { decodeUriAndRemoveFilePrefix } from "../../utils";
 import { indexSolidityFiles } from "../initialization/indexWorkspaceFolders";
@@ -15,7 +18,10 @@ export function onDidChangeWatchedFiles(serverState: ServerState) {
 
     // Index new solidity files
     for (const change of normalizedParams.changes) {
-      if (change.uri.endsWith(".sol")) {
+      if (
+        change.uri.endsWith(".sol") &&
+        change.type === FileChangeType.Created
+      ) {
         await indexSolidityFiles(serverState, [change.uri]);
       }
     }
