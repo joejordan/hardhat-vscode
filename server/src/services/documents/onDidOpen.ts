@@ -6,7 +6,7 @@ import { analyzeSolFile } from "@analyzer/analyzeSolFile";
 import { ServerState } from "../../types";
 
 export function onDidOpen(serverState: ServerState) {
-  return (change: TextDocumentChangeEvent<TextDocument>) => {
+  return async (change: TextDocumentChangeEvent<TextDocument>) => {
     if (change.document.languageId !== "solidity") {
       return;
     }
@@ -23,6 +23,6 @@ export function onDidOpen(serverState: ServerState) {
     solFileEntry.track();
 
     // Ensure it is analysed
-    analyzeSolFile(serverState, solFileEntry, solFileText);
+    await analyzeSolFile(serverState, solFileEntry, solFileText);
   };
 }

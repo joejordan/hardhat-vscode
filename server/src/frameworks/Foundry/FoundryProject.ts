@@ -84,7 +84,7 @@ export default class FoundryProject extends Project {
     }
   }
 
-  public resolveImportPath(file: string, importPath: string) {
+  public async resolveImportPath(file: string, importPath: string) {
     try {
       let transformedPath = importPath;
 
@@ -215,7 +215,7 @@ export default class FoundryProject extends Project {
       );
 
       if (!solFileEntry.isAnalyzed()) {
-        analyzeSolFile(this.serverState, solFileEntry);
+        await analyzeSolFile(this.serverState, solFileEntry);
       }
     }
 
@@ -234,14 +234,14 @@ export default class FoundryProject extends Project {
     const dependencyDetails = [{ path: sourceUri, pragmas: versionPragmas }];
 
     // Recursively crawl dependencies and append. Skip non-existing imports
-    const importsUris = imports.reduce((list, _import) => {
-      const resolvedImport = this.resolveImportPath(sourceUri, _import);
-      if (resolvedImport === undefined) {
-        return list;
-      } else {
-        return list.concat([resolvedImport]);
+    const importsUris: string[] = [];
+    for (const _import of imports) {
+      const resolvedImport = await this.resolveImportPath(sourceUri, _import);
+
+      if (resolvedImport !== undefined) {
+        importsUris.push(resolvedImport);
       }
-    }, [] as string[]);
+    }
 
     for (const importUri of importsUris) {
       dependencyDetails.push(

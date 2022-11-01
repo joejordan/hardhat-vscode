@@ -22,28 +22,24 @@ export class ImportDirectiveNode extends AbstractImportDirectiveNode {
     importDirective: ImportDirective,
     uri: string,
     rootPath: string,
-    documentsAnalyzer: SolFileIndexMap
+    solFileIndex: SolFileIndexMap,
+    resolvedUri: string
   ) {
-    super(
-      importDirective,
-      uri,
-      rootPath,
-      documentsAnalyzer,
-      importDirective.path
-    );
+    super(importDirective, uri, rootPath, solFileIndex, importDirective.path);
 
     this.realUri = toUnixStyle(fs.realpathSync(uri));
+    this.uri = resolvedUri;
 
-    try {
-      const solFileEntry = this.solFileIndex[this.realUri];
-      this.uri =
-        solFileEntry.project.resolveImportPath(
-          this.realUri,
-          importDirective.path
-        ) ?? "";
-    } catch (err) {
-      this.uri = "";
-    }
+    // try {
+    //   const solFileEntry = this.solFileIndex[this.realUri];
+    //   this.uri =
+    //     (await solFileEntry.project.resolveImportPath(
+    //       this.realUri,
+    //       importDirective.path
+    //     )) ?? "";
+    // } catch (err) {
+    //   this.uri = "";
+    // }
 
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (importDirective.pathLiteral && importDirective.pathLiteral.loc) {
@@ -61,12 +57,12 @@ export class ImportDirectiveNode extends AbstractImportDirectiveNode {
     return this;
   }
 
-  public accept(
+  public async accept(
     find: FinderType,
     orphanNodes: Node[],
     parent?: Node,
     expression?: Node
-  ): Node {
+  ): Promise<Node> {
     this.setExpressionNode(expression);
 
     if (parent) {
@@ -78,7 +74,7 @@ export class ImportDirectiveNode extends AbstractImportDirectiveNode {
       solFileEntry !== undefined &&
       solFileEntry.status !== SolFileState.ANALYZED
     ) {
-      analyzeSolFile({ solFileIndex: this.solFileIndex }, solFileEntry);
+      await analyzeSolFile({ solFileIndex: this.solFileIndex }, solFileEntry);
 
       // Analyze will change root node so we need to return root node after analyze
       const rootNode = this.solFileIndex[this.realUri]?.analyzerTree.tree;
@@ -106,21 +102,33 @@ export class ImportDirectiveNode extends AbstractImportDirectiveNode {
     const aliesNodes: Node[] = [];
     for (const symbolAliasesIdentifier of this.astNode
       .symbolAliasesIdentifiers || []) {
-      const importedContractNode = find(
+      const foundImportedContractNode = await find(
         symbolAliasesIdentifier[0],
         this.realUri,
         this.rootPath,
         this.solFileIndex
-      ).accept(find, orphanNodes, this);
+      );
+      const importedContractNode = await foundImportedContractNode.accept(
+        find,
+        orphanNodes,
+        this
+      );
 
       // Check if alias exist for importedContractNode
       if (symbolAliasesIdentifier[1]) {
-        const importedContractAliasNode = find(
+        const foundImportedContractAliasNode = await find(
           symbolAliasesIdentifier[1],
           this.realUri,
           this.rootPath,
           this.solFileIndex
-        ).accept(find, orphanNodes, importedContractNode, this);
+        );
+        const importedContractAliasNode =
+          await foundImportedContractAliasNode.accept(
+            find,
+            orphanNodes,
+            importedContractNode,
+            this
+          );
         importedContractAliasNode.setAliasName(importedContractNode.getName());
 
         aliesNodes.push(importedContractAliasNode);

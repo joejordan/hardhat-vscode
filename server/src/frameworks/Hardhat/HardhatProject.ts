@@ -183,7 +183,7 @@ export default class HardhatProject extends Project {
     }
   }
 
-  public resolveImportPath(file: string, importPath: string) {
+  public async resolveImportPath(file: string, importPath: string) {
     try {
       const resolvedPath = require.resolve(importPath, {
         paths: [fs.realpathSync(path.dirname(file))],

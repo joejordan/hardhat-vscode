@@ -42,7 +42,7 @@ export default class ProjectlessProject extends Project {
     return true;
   }
 
-  public resolveImportPath(file: string, importPath: string) {
+  public async resolveImportPath(file: string, importPath: string) {
     try {
       const resolvedPath = require.resolve(importPath, {
         paths: [fs.realpathSync(path.dirname(file))],
@@ -136,7 +136,7 @@ export default class ProjectlessProject extends Project {
       );
 
       if (!solFileEntry.isAnalyzed()) {
-        analyzeSolFile(this.serverState, solFileEntry);
+        await analyzeSolFile(this.serverState, solFileEntry);
       }
     }
 
@@ -155,14 +155,14 @@ export default class ProjectlessProject extends Project {
     const dependencyDetails = [{ path: sourceUri, pragmas: versionPragmas }];
 
     // Recursively crawl dependencies and append. Skip non-existing imports
-    const importsUris = imports.reduce((list, _import) => {
-      const resolvedImport = this.resolveImportPath(sourceUri, _import);
-      if (resolvedImport === undefined) {
-        return list;
-      } else {
-        return list.concat([resolvedImport]);
+    const importsUris: string[] = [];
+    for (const _import of imports) {
+      const resolvedImport = await this.resolveImportPath(sourceUri, _import);
+
+      if (resolvedImport !== undefined) {
+        importsUris.push(resolvedImport);
       }
-    }, [] as string[]);
+    }
 
     for (const importUri of importsUris) {
       dependencyDetails.push(
