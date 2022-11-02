@@ -47,9 +47,11 @@ export default class FoundryProject extends Project {
 
   public async initialize(): Promise<void> {
     try {
-      const config = JSON.parse(await runCmd("forge config --json"));
-      this.sourcesPath = config.src;
-      this.testsPath = config.test;
+      const config = JSON.parse(
+        await runCmd("forge config --json", this.basePath)
+      );
+      this.sourcesPath = path.join(this.basePath, config.src);
+      this.testsPath = path.join(this.basePath, config.test);
       this.configSolcVersion = config.solc || undefined; // may come as null otherwise
 
       const rawRemappings = await runCmd("forge remappings", this.basePath);
