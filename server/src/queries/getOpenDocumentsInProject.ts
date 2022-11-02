@@ -21,10 +21,6 @@ export function getOpenDocumentsInProject(
     .map((solFile) => lookupDocForSolFileEntry(serverState, solFile))
     .filter((doc): doc is TextDocument => doc !== undefined);
 
-  if (openDocuments.length < openSolFilesInProj.length) {
-    serverState.logger.info("Open document lookup has dropped files");
-  }
-
   return openDocuments;
 }
 
