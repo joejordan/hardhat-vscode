@@ -72,7 +72,8 @@ export async function validate(
 
     const { project } = solFileEntry;
     let validationResult: ValidationResult;
-    const logger = _.cloneDeep(serverState.logger);
+
+    const logger = _.clone(serverState.logger);
     logger.tag = `${path.basename(project.basePath)}:${validationId}`;
 
     try {
