@@ -61,7 +61,9 @@ export async function indexWorkspaceFolders(
 
   logger.info(`Found projects:`);
   for (const project of foundProjects) {
-    logger.info(`  ${project.basePath}`);
+    logger.info(`-  Type: ${project.frameworkName()}`);
+    logger.info(`   Base path: ${project.basePath}`);
+    logger.info(`   Config file: ${project.configPath}`);
   }
 
   // Append to global project map if they are not already indexed
@@ -201,7 +203,7 @@ async function analyzeSolFiles(
       const documentUri = solFileUris[i];
 
       try {
-        logger.trace(`Indexing file ${i}/${solFileUris.length}`);
+        logger.trace(`Analyzing file ${i}/${solFileUris.length}`);
 
         const solFileEntry = getOrInitialiseSolFileEntry(
           serverState,
