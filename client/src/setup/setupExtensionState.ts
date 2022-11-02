@@ -43,7 +43,7 @@ export function setupExtensionState(
     hardhatTelemetryEnabled:
       workspace.getConfiguration("hardhat").get<boolean>("telemetry") ?? false,
     globalTelemetryEnabled: env.isTelemetryEnabled,
-    hardhatConfigStatusItem: null,
+    projectStatusItems: [],
 
     telemetry,
     outputChannel,

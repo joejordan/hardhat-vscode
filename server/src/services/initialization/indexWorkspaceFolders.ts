@@ -173,19 +173,31 @@ export async function indexSolidityFiles(
       project,
       docText
     );
+
+    notifyFileIndexed(serverState, fileUri, project);
   }
 }
 
-function notifyStartIndexing(indexWorkspaceFoldersContext: ServerState) {
-  indexWorkspaceFoldersContext.connection.sendNotification(
-    "custom/indexing-start"
-  );
+function notifyStartIndexing(serverState: ServerState) {
+  serverState.connection.sendNotification("custom/indexing-start");
 }
 
-function notifyEndIndexing(indexWorkspaceFoldersContext: ServerState) {
-  indexWorkspaceFoldersContext.connection.sendNotification(
-    "custom/indexing-end"
-  );
+function notifyEndIndexing(serverState: ServerState) {
+  serverState.connection.sendNotification("custom/indexing-end");
+}
+
+function notifyFileIndexed(
+  serverState: ServerState,
+  uri: string,
+  project: Project
+) {
+  serverState.connection.sendNotification("custom/file-indexed", {
+    uri,
+    project: {
+      configPath: project.configPath,
+      frameworkName: project.frameworkName(),
+    },
+  });
 }
 
 async function analyzeSolFiles(
