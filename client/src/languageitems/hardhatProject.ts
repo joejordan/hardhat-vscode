@@ -46,16 +46,16 @@ export async function updateHardhatProjectLanguageItem(
     extensionState.hardhatConfigStatusItem = statusItem;
   }
 
-  if (!response.found || !response.hardhat) {
-    extensionState.hardhatConfigStatusItem.severity =
-      LanguageStatusSeverity.Warning;
-    extensionState.hardhatConfigStatusItem.text =
-      "No related Hardhat config file found";
+  // if (!response.found || !response.hardhat) {
+  //   extensionState.hardhatConfigStatusItem.severity =
+  //     LanguageStatusSeverity.Warning;
+  //   extensionState.hardhatConfigStatusItem.text =
+  //     "No related Hardhat config file found";
 
-    extensionState.hardhatConfigStatusItem.command = undefined;
+  //   extensionState.hardhatConfigStatusItem.command = undefined;
 
-    return;
-  }
+  //   return;
+  // }
 
   if (response.found && response.hardhat) {
     extensionState.hardhatConfigStatusItem.text = response.configDisplayPath;
